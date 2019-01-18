@@ -1,35 +1,72 @@
 <?php
 /**
- * Remove admin pages for Orknet Client
+ * User Management
  *
- * Remove or add comments below to adjust which pages are shown/removed
- *
- * @package Package_name
+ * @package Package_Name
  */
 
-function remove_pages_for_client_role() {
- if ( current_user_can( 'orknet_client' ) ) {
-   // remove_menu_page('index.php');
-   remove_menu_page('edit.php');
-   // remove_menu_page('upload.php');
-   // remove_menu_page('link-manager.php');
-   remove_menu_page('edit-comments.php');
-   // remove_menu_page('edit.php?post_type=page');
-   remove_menu_page('plugins.php');
-   remove_menu_page('plugin-install.php');
-   remove_menu_page('themes.php');
-   // remove_menu_page('users.php');
-   remove_menu_page('tools.php');
-   remove_menu_page('options-general.php');
-   remove_menu_page('wpcf7');
-   remove_menu_page('edit.php?post_type=acf-field-group');
+/**
+ * Create Orknet Client role
+ */
+function create_orknet_client_role() {
+  global $wp_roles;
+  if ( ! isset( $wp_roles ) )
+    $wp_roles = new WP_Roles();
 
-   // sub pages
-   remove_submenu_page( 'themes.php', 'themes.php' );
-   remove_submenu_page( 'themes.php', 'theme-editor.php' );
+  $adm = $wp_roles->get_role('administrator');
 
-   // Add Custom Menus link
-   add_menu_page( 'Menus', 'Menus','edit_theme_options', 'nav-menus.php', '', 'dashicons-welcome-widgets-menus' ,10 );
- }
+  $wp_roles->add_role( 'orknet_client', 'Client', $adm->capabilities );
+
+  $remove_caps = array(
+    'switch_themes',
+    'activate_plugins',
+    'update_plugins',
+    'delete_plugins',
+    'update_themes',
+    'install_themes',
+    'update_core',
+    'delete_themes'
+  );
+
+  foreach ( $remove_caps as $cap ) {
+    $wp_roles->remove_cap( 'orknet_client', $cap );
+  }
+
+  $add_caps = array(
+    'edit_themes',
+    'edit_theme_options'
+  );
+
+  foreach ( $add_caps as $cap ) {
+    $wp_roles->add_cap( 'orknet_client', $cap );
+  }
+
 }
-add_action( 'admin_init', 'remove_pages_for_client_role' );
+add_action( 'init', 'create_orknet_client_role' );
+
+/**
+ * Remove User Roles
+ */
+require get_template_directory() . '/inc/user/remove-user-roles.php';
+
+/**
+ * Remove Admin Pages
+ */
+require get_template_directory() . '/inc/user/remove-admin-pages.php';
+
+
+/**
+ * Alter Admin Bar
+ */
+require get_template_directory() . '/inc/user/admin-bar.php';
+
+/**
+ * Remove adminstrator from list for Client user creating new users
+ */
+function editable_roles( $roles ){
+  if( isset( $roles['administrator'] ) && !current_user_can('administrator') ){
+    unset( $roles['administrator']);
+  }
+  return $roles;
+}
+add_filter( 'editable_roles', 'editable_roles' );
